@@ -7,3 +7,9 @@
 # Decorators (Python) are used to modify the behavior of functions, classes.
 --> They work by wrapping the function, modify with added logic before/after function execution and return the modified function.
 # FastApi uses built-in decorators to simplify defining the routes/endpoints and handling functionality (Depends dependency injection, auth, etc.)
+
+#Pydantic is dependency of, and gets installed with FastAPI
+# FastAPI uses Pydantic for data validation (typing), and serialization (convert data structure/obj into format it can be stored or transmitted - also known as deflating, marshalling). This also auto applies in the generated documentation where it will show expected data types and structure + give warnings when entering wrong data types to test with
+	eg using pydantic and specifying id: int, FastAPI will automatically convert the id from str (in pathname param) to an integer else returns helpful error message to client.
+
+# Order of Routes --> eg. use static routes first, then dynamic routes, then catch-all routes
