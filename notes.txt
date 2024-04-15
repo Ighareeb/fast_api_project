@@ -1,2 +1,9 @@
-Set up virtual env --> python -m venv env (creates target dir/virtual env)
-activate venv to use --> env/Scripts/Activate.ps1 OR .\env\Scripts\activate
+# Set up virtual env --> python -m venv env (creates target dir/virtual env)
+# activate venv to use --> env/Scripts/Activate.ps1 OR .\env\Scripts\activate
+# uvicorn main:app --reload (run the server/app) [where main is the file name and app is the FastAPI instance]
+	--port 8000 (to specify port) [default is 8000]
+	--reload (to auto-reload server on code changes)
+
+# Decorators (Python) are used to modify the behavior of functions, classes.
+--> They work by wrapping the function, modify with added logic before/after function execution and return the modified function.
+# FastApi uses built-in decorators to simplify defining the routes/endpoints and handling functionality (Depends dependency injection, auth, etc.)
