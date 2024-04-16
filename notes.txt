@@ -1,5 +1,6 @@
 # Set up virtual env --> python -m venv env (creates target dir/virtual env)
 # activate venv to use --> env/Scripts/Activate.ps1 OR .\env\Scripts\activate
+	The venv needs to be activated in every new terminal window to use it (set up shell to use isolated env)
 # uvicorn main:app --reload (run the server/app) [where main is the file name and app is the FastAPI instance]
 	--port 8000 (to specify port) [default is 8000]
 	--reload (to auto-reload server on code changes)
@@ -10,6 +11,22 @@
 
 #Pydantic is dependency of, and gets installed with FastAPI
 # FastAPI uses Pydantic for data validation (typing), and serialization (convert data structure/obj into format it can be stored or transmitted - also known as deflating, marshalling). This also auto applies in the generated documentation where it will show expected data types and structure + give warnings when entering wrong data types to test with
-	eg using pydantic and specifying id: int, FastAPI will automatically convert the id from str (in pathname param) to an integer else returns helpful error message to client.
+	eg. using pydantic and specifying id: int, FastAPI will automatically convert the id from str (in pathname param) to an integer else returns helpful error message to client.
+	-In Pydantic, the term "validation" refers to the process of instantiating a model (or other type) that adheres to specified types and constraints. Pydantic guarantees the types and constraints of the output, not the input data. This distinction becomes apparent when considering that Pydantic's ValidationError is raised when data cannot be successfully parsed into a model instance.
+	-can include the copying and coercion of data. This can involve copying arguments passed to the constructor in order to perform coercion to a new type without mutating the original input data.
 
 # Order of Routes --> eg. use static routes first, then dynamic routes, then catch-all routes
+
+# Use Query() from FastAPI to add extra validation for query params + add metadata (eg. description)
+	# !!remove | None and add ... to make it required (also has no default value now - you can set default instead)
+    # !!use list[str] to specify that it should be a list of strings i.e multiple query params
+	# setting include_in_schema=False will exclude the param from the generated OpenAPI schema (docs)
+# Use Path() from FastAPI to add extra validation for path params + add metadata (eg. description)
+# Use Body() from FastApi to add another key in the body - i.e add multiple body params to path operation function even though request can only have a single body. FastAPI + pydantic will handle and validate 
+# Field() is imported from pydantic NOT fastapi BUT used in exactly the same way (has all the same params)
+	used to declare extra validations and metadata for model attributes
+	eg. use item: Item = Body(..., embed=True) to embed item as the key with the dict being the value in the body
+	--> 'item' : {} vs just {} in the body
+### *!NOTE: Cannot declare a non-defualt/required path param after a default path param (FastAPI will throw an error)
+	using * as first argument as workaround for this since it will be treated as a required path param
+*You can declare extra information in Field, Query, Body, etc. And it will be included in the generated JSON Schema.
