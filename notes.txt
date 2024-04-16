@@ -36,3 +36,7 @@
 model_config --> https://docs.pydantic.dev/latest/api/config/#pydantic.config.ConfigDict.str_strip_whitespace
 
 OTHER DATA TYPES in Pydantic Model declaration eg. UUID, datetime, Decimal, etc. can be used in Pydantic models and FastAPI will automatically convert them to the correct type (need to import from libraries)
+
+
+# EXTRA MODELS
+# You can declare a response_model to be eg. Union[model1, model2] to return either model1 or model2 using Union from typing

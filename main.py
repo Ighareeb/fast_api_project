@@ -3,14 +3,14 @@ from typing import Any, List
 from fastapi import Body, FastAPI, Path, Query
 from enum import Enum
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, EmailStr, Field, HttpUrl
 
 app = FastAPI()
 
 
-# @app.get("/")
-# async def root():
-#     return {"message": "Hello World"}
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
 
 
 # @app.post("/")
@@ -225,12 +225,14 @@ class Item_v2(BaseModel):
     # 2(a) Can also be used to extend schema with your own custom data https://docs.pydantic.dev/latest/api/config/#pydantic.config.ConfigDict.str_strip_whitespace
     model_config = {
         "json_schema_extra": {
-            "examples": {
-                "name": "Foo",
-                "description": "A very nice item",
-                "price": 35.4,
-                "tax": 3.2,
-            }
+            "examples": [
+                {
+                    "name": "Foo",
+                    "description": "A very nice item",
+                    "price": 35.4,
+                    "tax": 3.2,
+                }
+            ]
         }
     }
 
@@ -264,3 +266,57 @@ async def create_multiple_images(images: list[Image]):
 @app.post("/blah")
 async def create_some_blahs(blahs: dict[int, float]):
     return blahs
+
+
+# RESPONSE MODEL & RETURN TYPE -
+# # 1. declare type used for repsonse by adding {async def create_item(item: Item) -> TYPE eg. Item} after the route definition
+# eg. create an output model specifically for response data
+# # FastAPI will use this return type to Validate the response data and generate the OpenAPI JSON schema + IMP filter & limit output data to only defined/decalred types, fields which is important for security.
+# # 2. 'response_model' parameter in route decorator to specify the response model eg. @app.post("/items/", response_model=Item)
+# # if both are defined then 'response_model' takes priority over return type ->
+
+
+# example
+class UserBase(BaseModel):
+    username: str
+    email: EmailStr
+    full_name: str | None = None
+
+
+# use to validate request body
+class UserInDB(UserBase):
+    password: str
+
+
+# use to format the response
+class UserOut(UserBase):
+    pass
+
+
+@app.post("/user_in_out_test", response_model=UserOut)
+async def create_user_in_out(user: UserInDB):
+    return user
+
+
+class Item_v2_res(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+    tags: list[str] = []
+    image: list[Image] | None = None
+
+
+@app.get("/items_v2/{item_id}", response_model=Item_v2_res)
+async def read_item_v2_with_response_model(item_id: int):
+    return {
+        "name": "Foo",
+        "description": "GET route using response_model to validate response data",
+        "price": 35.4,
+        "tax": 3.2,
+        "tags": ["tag1", "tag2"],
+        "image": [
+            {"url": "http://image1.jpg", "name": "image1"},
+            {"url": "http://image2.jpg", "name": "image2"},
+        ],
+    }
