@@ -30,3 +30,5 @@
 ### *!NOTE: Cannot declare a non-defualt/required path param after a default path param (FastAPI will throw an error)
 	using * as first argument as workaround for this since it will be treated as a required path param
 *You can declare extra information in Field, Query, Body, etc. And it will be included in the generated JSON Schema.
+
+model_config --> https://docs.pydantic.dev/latest/api/config/#pydantic.config.ConfigDict.str_strip_whitespace

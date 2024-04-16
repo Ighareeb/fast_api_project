@@ -202,7 +202,12 @@ async def update_item_v2(
     return results
 
 
-# NESTED MODELS within Pydantic model attribute types
+# 1.NESTED MODELS within Pydantic model attribute types
+# 2.DECLARE REQUEST EXAMPLE DATA that app can receive (multiple methods to do this). Able to pass multiple examples
+## 2(a) Extra JSON schema data in Pydanitc Models (declare examples using model_config: dict that will be added to auto-generated JSON schema API docs).
+## 2(b) Using Field(0) you can declare additional examples
+## 2(c) Passing eg. Body/Path/Query/Header/Cookie(examples=[{use keys from schema and declare examples}])
+##2(d) OpenAPI-specific exmaples - focus on path operation not JSON Schema. examples: dict and goes in path operation directly. Passing eg. Body/Path/Query/Header/Cookie(openapi_examples={use keys from schema and declare examples})
 class Image(BaseModel):
     url: HttpUrl
     name: str
@@ -212,11 +217,22 @@ class Item_v2(BaseModel):
     name: str
     description: str | None = None
     price: float
-    tax: float | None = None
+    tax: float | None = Field(examples=[3.2, 0.5])
     # tags: List[str] = [] <= 3.8 Python and syntax
     tags: list[str] = []  # >= 3.9
     # tags: set[str] = set() for unique values
     image: list[Image] | None = None
+    # 2(a) Can also be used to extend schema with your own custom data https://docs.pydantic.dev/latest/api/config/#pydantic.config.ConfigDict.str_strip_whitespace
+    model_config = {
+        "json_schema_extra": {
+            "examples": {
+                "name": "Foo",
+                "description": "A very nice item",
+                "price": 35.4,
+                "tax": 3.2,
+            }
+        }
+    }
 
 
 class Offer(BaseModel):
