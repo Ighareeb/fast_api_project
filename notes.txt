@@ -27,8 +27,12 @@
 	used to declare extra validations and metadata for model attributes
 	eg. use item: Item = Body(..., embed=True) to embed item as the key with the dict being the value in the body
 	--> 'item' : {} vs just {} in the body
+# Declare headers,cookies with Header(), Cookie() fastapi, using the same common pattern as Query and Path.
+## note for Headers() by default converts param names from _ to - to match HTTP headers 
 ### *!NOTE: Cannot declare a non-defualt/required path param after a default path param (FastAPI will throw an error)
 	using * as first argument as workaround for this since it will be treated as a required path param
 *You can declare extra information in Field, Query, Body, etc. And it will be included in the generated JSON Schema.
 
 model_config --> https://docs.pydantic.dev/latest/api/config/#pydantic.config.ConfigDict.str_strip_whitespace
+
+OTHER DATA TYPES in Pydantic Model declaration eg. UUID, datetime, Decimal, etc. can be used in Pydantic models and FastAPI will automatically convert them to the correct type (need to import from libraries)
