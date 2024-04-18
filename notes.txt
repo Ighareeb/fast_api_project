@@ -24,7 +24,7 @@
 # Use Path() from FastAPI to add extra validation for path params + add metadata (eg. description)
 # Use Body() from FastApi to add another key in the body - i.e add multiple body params to path operation function even though request can only have a single body. FastAPI + pydantic will handle and validate 
 # Field() is imported from pydantic NOT fastapi BUT used in exactly the same way (has all the same params)
-	used to declare extra validations and metadata for model attributes
+	used for BODY PARAMS (sent in req body) to declare extra validations and metadata for model attributes
 	eg. use item: Item = Body(..., embed=True) to embed item as the key with the dict being the value in the body
 	--> 'item' : {} vs just {} in the body
 # Declare headers,cookies with Header(), Cookie() fastapi, using the same common pattern as Query and Path.

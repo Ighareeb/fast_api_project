@@ -1,6 +1,6 @@
 from re import L
 from typing import Any, List
-from fastapi import Body, FastAPI, Path, Query
+from fastapi import Body, FastAPI, Path, Query, status, Form
 from enum import Enum
 
 from pydantic import BaseModel, EmailStr, Field, HttpUrl
@@ -320,3 +320,17 @@ async def read_item_v2_with_response_model(item_id: int):
             {"url": "http://image2.jpg", "name": "image2"},
         ],
     }
+
+
+# RESPONSE STATUS CODES - same as response_model - declare status_code in route decorator
+#  use with (HTTPStatus from http) or (HTTPException OR status from fastapi)
+# app.post('/items)', status_code=status.HTTP_201_CREATED)
+
+
+# FORM DATA/FIELDS - use Form from fastapi to declare form data in route
+# When you need to receive form fields instead of JSON, you can use Form. [pip install python-multipart]
+##!IMP if you use Body() then you will receive the form data as (JSON) a dict with the form field names as keys and the form field values as values, if you use Form() you will receive the form data as the form field values directly.
+# You can't declare both Form and Body params in the same route. ( since request will have body encoded with eg. application/x-www-form-urlencoded or multipart/form-data) instead of application/json
+@app.post("/login")
+async def login(username: str = Form(...), password: str = Form(...)):
+    return {"username": username}
