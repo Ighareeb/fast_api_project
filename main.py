@@ -1,6 +1,6 @@
 from re import L
 from typing import Any, List
-from fastapi import Body, FastAPI, Path, Query, status, Form
+from fastapi import Body, FastAPI, File, Path, Query, UploadFile, status, Form
 from enum import Enum
 
 from pydantic import BaseModel, EmailStr, Field, HttpUrl
@@ -122,10 +122,10 @@ async def root():
 #         None, min_length=3, max_length=10, title="Sample query string"
 #     ),
 #     # !!remove | None and add ... to make it required (also has no default value now - you can set default instead)
-#     # !!use list[str] to specify that it should be a list of strings i.e multiple query params
+#     # !!use List[str] to specify that it should be a list of strings i.e multiple query params
 #     # alias is used since python not able to allow certain chars/symbols in name (in this example '-') [this changes how query is displayed in the URL]
 #     # async def read_items(
-#     #     q: list[str] = Query(
+#     #     q: List[str] = Query(
 #     #         ..., min_length=3, max_length=10, title="Sample query string"
 #     #     ),
 #     description="This is a sample query string.",
@@ -218,10 +218,10 @@ class Item_v2(BaseModel):
     description: str | None = None
     price: float
     tax: float | None = Field(examples=[3.2, 0.5])
-    # tags: List[str] = [] <= 3.8 Python and syntax
-    tags: list[str] = []  # >= 3.9
+    tags: List[str] = []  # <= 3.8 Python and syntax
+    # tags: list[str] = []  # >= 3.9
     # tags: set[str] = set() for unique values
-    image: list[Image] | None = None
+    # image: list[Image] | None = None
     # 2(a) Can also be used to extend schema with your own custom data https://docs.pydantic.dev/latest/api/config/#pydantic.config.ConfigDict.str_strip_whitespace
     model_config = {
         "json_schema_extra": {
@@ -241,7 +241,7 @@ class Offer(BaseModel):
     name: str
     description: str | None = None
     price: float
-    items: list[Item_v2]
+    items: List[Item_v2]
 
 
 @app.put("/items_v2/{item_id}")
@@ -258,7 +258,7 @@ async def create_offer(offer: Offer = Body(..., embed=True)):
 # Body function to indicate that the offer data should come from the request body.
 # The embed=True argument tells FastAPI to expect the Offer data to be under the offer key in the request body.
 @app.post("/images/multiple")
-async def create_multiple_images(images: list[Image]):
+async def create_multiple_images(images: List[Image]):
     return images
 
 
@@ -303,8 +303,8 @@ class Item_v2_res(BaseModel):
     description: str | None = None
     price: float
     tax: float | None = None
-    tags: list[str] = []
-    image: list[Image] | None = None
+    tags: List[str] = []
+    image: List[Image] | None = None
 
 
 @app.get("/items_v2/{item_id}", response_model=Item_v2_res)
@@ -323,14 +323,68 @@ async def read_item_v2_with_response_model(item_id: int):
 
 
 # RESPONSE STATUS CODES - same as response_model - declare status_code in route decorator
-#  use with (HTTPStatus from http) or (HTTPException OR status from fastapi)
-# app.post('/items)', status_code=status.HTTP_201_CREATED)
+##  use with (HTTPStatus from http) or (HTTPException OR status from fastapi)
+## app.post('/items)', status_code=status.HTTP_201_CREATED)
 
 
 # FORM DATA/FIELDS - use Form from fastapi to declare form data in route
-# When you need to receive form fields instead of JSON, you can use Form. [pip install python-multipart]
+## When you need to receive form fields instead of JSON, you can use Form. [pip install python-multipart]
 ##!IMP if you use Body() then you will receive the form data as (JSON) a dict with the form field names as keys and the form field values as values, if you use Form() you will receive the form data as the form field values directly.
-# You can't declare both Form and Body params in the same route. ( since request will have body encoded with eg. application/x-www-form-urlencoded or multipart/form-data) instead of application/json
+## You can't declare both Form and Body params in the same route. ( since request will have body encoded with eg. application/x-www-form-urlencoded or multipart/form-data) instead of application/json
 @app.post("/login")
 async def login(username: str = Form(...), password: str = Form(...)):
     return {"username": username}
+
+
+# REQUEST FILES - using File() from fastapi to define files to upload
+## !!since uploaded files sent as form data (need python-multipart)
+
+
+# For small files, you can read the file into memory and return it as bytes using File
+# when defining file as bytes, FastAPI will read the file into memory and return the file as bytes. If you want to save the file to disk, you can use UploadFile instead of bytes.
+@app.post("/files")
+# async def create_file(file: bytes | None = File()):
+# async def create_file(file: bytes = File(...)): ##make file required
+async def create_file(
+    file: bytes = File(description="The file to upload", max_length=1000000)
+):
+    if file is None:
+        return {"message": "No file provided"}
+    else:
+        return {"file_size": len(file)}
+
+
+@app.post("/files")
+# multiple file upload
+async def create_multiple_files(
+    files: List[bytes] = File(description="The file to upload", max_length=1000000)
+):
+    return {"file_sizes": [len(file) for file in files]}
+
+
+# async def create_upload_files(files: List[UploadFile]):
+# return {"filenames": [file.filename for file in files]}
+
+
+# For larger files eg. images, videos.
+# can use 'file' object methods to access attributes/K:V or use methods do CRUD operations on the file
+# UploadFile has following attributes:  *filename = str with original file name, *content_type = str with file content type, *file = SpooledTemporaryFile (the actual python file you can pass around like an object),
+# !Async methods: *write(data: str/bytes), *read(size: int -either bytes or chars in file), *readline(), *seek(offset: int), *close()
+@app.post("/uploadfiles")
+async def create_upload_file(file: UploadFile):
+    return {"filename": file.filename}
+
+
+# REQUEST FORMS AND FILES
+# Define file and form fileds at the same time using File() and Form() in the same route - when you need to receive both form fields and files in the same request. They will be uploaded as form data and you will recieve the files and form fields.
+@app.post("/files_and_forms")
+async def create_file_and_form(
+    file: bytes = File(...),
+    fileb: UploadFile = File(...),
+    token: str = Form(...),
+):
+    return {
+        "file_size": len(file),
+        "token": token,
+        "fileb_content_type": fileb.content_type,
+    }
