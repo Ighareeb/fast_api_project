@@ -40,3 +40,17 @@ OTHER DATA TYPES in Pydantic Model declaration eg. UUID, datetime, Decimal, etc.
 
 # EXTRA MODELS
 # You can declare a response_model to be eg. Union[model1, model2] to return either model1 or model2 using Union from typing
+
+# HANDLING ERRORS - using HTTPException from FastAPI
+## Use to notify an error to a client --> eg. raise HTTPException(status_code=404, detail="Item not found")
+## HTTPException is a normal Python exception with additional data relevant for APIs (hence 'raise' instead of return) + will terminate/won't run the rest of the request handler code 
+## HTTPException can be passed with any value (passed as arg in function def) that can be converted to JSON as param (eg. list, dict, etc.). Conversion handled automatically by FastAPI
+## able to add custom headers, Use custom exception handlers (need to define a custom exception handler function [a Pydantic class] in the app using the exception_handler decorator), 
+## Override default FastAPI Exception handlersRequestValidationError (also needs @app.exception_handler(RequestValidationError) function to be defined)
+	RequestValidationError contains .error and .body it received with the invalid data, which can be used for debug/dev
+eg. @app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
+    )
