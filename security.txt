@@ -1,0 +1,22 @@
+# SECURITY
+## Many ways to handle security, auth/auth 
+## FastAPI provides several tools to help deal with security easily, rapidly, standardized approach, abstracts complexity of security specifications
+1. OAuth2 - extensive, complex spec that defines several ways to handle auth/auth. Most systems that use 3rd party (login with google fb etc) use underneath.
+2. OpenID Connect - spec based on OAuth2 that extends it 
+*3. OpenAPI = open spec for building APIs - FastAPI is based on OpenAPI. It has way to define multiple security 'schemas' so you can take advantage of standard-based tools.
+	OpenAPI security schema defines:
+	apikey - app specific key (that comes form query param/header/cookie)
+	http - standard http auth system; includes (bearer - header auth with value 'Bearer' + token inherited from OAuth2), (HTTP basic auth) etc
+	oauth2 - all the oauth2 ways to handle security (called 'flows') --> implicit, clientCredentials, authorizationCode, password, etc
+		(password is perfect flow for handling auth directly in the app)
+	openIdConnect - way to define how to discover oauth2 auth data automatically
+	----> FastAPI provides several utilities/tools for each of these security schemas in the fastapi.security module to simplify using the security mechanisms.
+## OAuth2 designed so BE or API is independent of the server that auths the user.  
+### OAuth2:
+## password 'flow' one of the ways/flows defined in OAuth2 to handle security, auth.
+	when user logs in API responds with a token to verify user. FE stores token temporarily. token is send in 'Authorization' header with 'Bearer' value + the token. 
+	OAuth2 specifies that when using password flow to login path operation client must send 'username' and 'password' as fields as form data NOT JSON with those specific names to be compatible with the spec.
+	spec also says client can add 'scope' form field - which is a long str with multiple scopes separated by spaces using to declare specific security permissions (eg. users:read users:write)
+	FastAPI util to get 'username' 'password' --> OAuth2PasswordRequestForm dependency in path operation (see code)
+	OAuth2PasswordRequestForm is a class dependency that declares a form body with 'username', 'password' option[scope, grant_type, client_id, client_secret]
+
