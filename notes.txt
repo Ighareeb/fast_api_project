@@ -54,3 +54,17 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
     )
+
+# model_copy() Pydantic function to create copy of existing model, or you can use 
+.model_dump(exclude_unset=True) to exclude unset values from the model (i.e. fields with default values won't be included in output)
+
+# DEPENDENCIES - FastAPI dependency injection system
+- dependency injection is a technique in which an object receives other objects that it depends on (dependencies) rather than creating them itself. FastAPI uses this to manage dependencies in request handlers
+Dependency must be 'callable' i.e. anything in Python that can be called like a function --> functions, Classes (since you have to call to instantiate/create an instance by calling class)
+use = Depends(dependency_name) - only accepts a single arg so you can create eg.
+## Classes as Dependencies - (since they are callable)
+## Sub-Dependencies --> able to nest dependencies (eg. use a dependency inside another dependency) by using the dependency as a parameter in the function that defines the sub-dependency. Consider since dependency only accepts a single dependable
+## FastAPI will know that it has to solve the sub-dependency first before solving the main dependency
+ADVANTAGE OF USING DEPENDENCIES:
+Code reusability (eg. common params), Separation of concerns/tasks (dependency to handle db connection, auth etc), Auto Dependency Resolution by fast API (only called once per request--> simplify speed up code?), Auto request Validation if dependency has params.
+
