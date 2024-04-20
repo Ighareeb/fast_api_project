@@ -1,6 +1,17 @@
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
+from passlib.context import CryptContext
+from jose import jwt, JWTError
+
+
+# run (openssl rand -hex 32) to get a str [SECRET_KEY]
+SECRET_KEY = "45deb7171d949d8f33358e1c5c2268b01d56f68effb96df951d1198ced8f1c95"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MIN = 30
 
 # scenario: BE API in some domain with DE in another domain/diff path same domain/or on mobile app. Want FE to auth with BE with OAuth2 username + password. Tools provided by FastAPI to handle this.
 fake_users_db = {
@@ -8,7 +19,7 @@ fake_users_db = {
         "username": "johndoe",
         "full_name": "John Doe",
         "email": "johndoe@example.com",
-        "hashed_password": "hashedsecret",
+        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
         "disabled": False,
     },
     "alice": {
@@ -22,12 +33,31 @@ fake_users_db = {
 
 app = FastAPI()
 
-
-def hash_password(password: str):
-    return "hashed" + password
-
-
 oauth_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+# create passlib context (used to hash + verify password using algo with util functions)
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def verify_password(plain_pw, hashed_pw):
+    return pwd_context.verify(plain_pw, hashed_pw)
+
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+
+# def hash_password(password: str):
+#     return "hashed" + password
+
+
+class Token(BaseModel):  # E.
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    username: str | None = None
 
 
 class AuthUser(BaseModel):
@@ -47,25 +77,68 @@ def get_user(db, username: str):
         return AuthUserInDB(**user_dict)
 
 
-# this does not provide any security
-def decode_token(token):
-    return AuthUser(
-        username=token + "decodedtoken",
-        email="user123@example.com",
-        full_name="John Doe",
-        disabled=False,
-    )
-
-
-async def get_current_user(token: str = Depends(oauth_scheme)):
-    user = decode_token(token)
+# util function to auth user (using util verify_password); return user (compare stored hashed and after hashing incoming password)
+def authenitcate_user(db, username: str, password: str):
+    user = get_user(fake_users_db, username)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        return False
+    if not verify_password(password, user.hashed_password):
+        return False
     return user
+
+
+# util function to generate, return JWT access token (encoded BUT NOT encrypted)
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+# updated get_current_user function that uses JWT token, decodes + verifies token and returns current user
+async def get_current_user(token: str = Depends(oauth_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: Optional[str] = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = TokenData(username=username)
+    except JWTError:
+        raise credentials_exception
+    user = get_user(fake_users_db, username=token_data.username or "")
+    if user is None:
+        raise credentials_exception
+    return user
+
+
+# # this does not provide any security
+# def decode_token(token):
+#     return AuthUser(
+#         username=token + "decodedtoken",
+#         email="user123@example.com",
+#         full_name="John Doe",
+#         disabled=False,
+#     )
+
+## without JWT Token and pw hashing
+# async def get_current_user(token: str = Depends(oauth_scheme)):
+#     user = decode_token(token)
+#     if not user:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Invalid authentication credentials",
+#             headers={"WWW-Authenticate": "Bearer"},
+#         )
+#     return user
 
 
 async def get_current_active_user(current_user: AuthUser = Depends(get_current_user)):
@@ -76,26 +149,44 @@ async def get_current_active_user(current_user: AuthUser = Depends(get_current_u
     return current_user
 
 
-# token endpoint must return a JSON object with token_type=bearer and access_token: str (the access token - in this case just the username WHICH IS INSECURE!)
 @app.post("/token")
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user_dict = fake_users_db.get(form_data.username)
-    if not user_dict:
+async def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+) -> Token:
+    user = authenitcate_user(fake_users_db, form_data.username, form_data.password)
+    if not user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
+            headers={"WWW_Authenticate": "Bearer"},
         )
-    user = AuthUserInDB(**user_dict)
-    hashed_password = hash_password(form_data.password)
-    if not hashed_password == user.hashed_password:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect username or password",
-        )
-    return {"access_token": user.username, "token_type": "bearer"}
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MIN)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return Token(access_token=access_token, token_type="bearer")
 
 
-@app.get("/auth_users")
+# token endpoint must return a JSON object with token_type=bearer and access_token: str (the access token - in this case just the username WHICH IS INSECURE!)
+# @app.post("/token")
+# async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+#     user_dict = fake_users_db.get(form_data.username)
+#     if not user_dict:
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail="Incorrect username or password",
+#         )
+#     user = AuthUserInDB(**user_dict)
+#     hashed_password = hash_password(form_data.password)
+#     if not hashed_password == user.hashed_password:
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail="Incorrect username or password",
+#         )
+#     return {"access_token": user.username, "token_type": "bearer"}
+
+
+@app.get("/auth_users", response_model=AuthUser)
 async def read_auth_users(current_user: AuthUser = Depends(get_current_user)):
     return current_user
 

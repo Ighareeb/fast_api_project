@@ -19,4 +19,18 @@
 	spec also says client can add 'scope' form field - which is a long str with multiple scopes separated by spaces using to declare specific security permissions (eg. users:read users:write)
 	FastAPI util to get 'username' 'password' --> OAuth2PasswordRequestForm dependency in path operation (see code)
 	OAuth2PasswordRequestForm is a class dependency that declares a form body with 'username', 'password' option[scope, grant_type, client_id, client_secret]
-
+****Once security flow complete --> make it acutually secure using 1. JWT tokens and 2. secure password hashing
+	JWT - standard to codify JSON object in a long dense (UNENCRYPTED!) str without spaces - so still able to recover info from contents.
+	HOWEVER--> JWT gets 'signed' so you can verify the token and ensure that the token has not been modified as that would change the signature.
+	NOTE - JWT 'sub' key contains subject of the token (optional to use, it is where you put user identification --> this allows you to add permissions later for authorized operations that entity can do while avoiding ID collissions (eg. different entities with similar values in fields would not be given the same permission since stored on token given to specific entity at login as long as it is linked to a unique identifier))
+INSTALL MODULE TO GENERATE AND VERIFY JWT --> need to pip install python-jose[crytpography]		 
+	requires cryptographic BE --> pyca/cryptography ([cryptography])
+	(PyJWT also an option but less features/extras for integration)
+PASSWORD HASHING - use algo to convert some content into sequence of bytes:str Algo only works one way (you cannot convert hashed content back to original but if you hash the same content you will get the same hashed content so can compare)
+	pip install passlib[bcrypt] ---> where bcrypt is hashing algo. (passlib support other secure hashing algo & utils)
+	--> A. create passlib context (used to hash + verify password using algo)  
+		B. THEN create util function to hash the password (pwd_context.hash)  + 
+		C. util function to verify that recieved password matches the stored hashed password (pwd_context.verify)  + 
+		D. util function to auth and return to client.
+		E. Define Pydantic model to use in token endpoint for the response
+		F. util function to generate new access token
