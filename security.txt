@@ -34,3 +34,8 @@ PASSWORD HASHING - use algo to convert some content into sequence of bytes:str A
 		D. util function to auth and return to client.
 		E. Define Pydantic model to use in token endpoint for the response
 		F. util function to generate new access token
+
+
+# MIDDLEWARE - https://fastapi.tiangolo.com/advanced/middleware/
+## middleware function works (does something to request/response) 1. BEFORE request is processed by path function/operation + 2. BEFORE returning response to client
+## to create middleware you define decorator at the top of the app @app.middleware('http')  where 'http' is the event type

@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta, timezone
+import time
 from typing import Optional
 
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from passlib.context import CryptContext
@@ -32,6 +33,19 @@ fake_users_db = {
 }
 
 app = FastAPI()
+
+
+# add middleware function
+# Keep in mind that custom proprietary headers can be added using the 'X-' prefix
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    # this will add a header to the response with the time it took to process the request and generate a response
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
+
 
 oauth_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
