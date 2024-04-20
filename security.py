@@ -35,6 +35,7 @@ fake_users_db = {
 app = FastAPI()
 
 
+# MIDDLEWARE check fastapi for advanced middleware options
 # add middleware function
 # Keep in mind that custom proprietary headers can be added using the 'X-' prefix
 @app.middleware("http")
