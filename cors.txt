@@ -1,0 +1,18 @@
+# CORS - Cross Origin Resource Sharing - 
+https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS#what_requests_use_cors
+	## HTTP-header based mechanism; allows server to indicate any origins (domain, scheme or port) other than its own from which browser should permit loading resources; refers to situation where FE running in a browser has code that communicates with BE (which is in a different origin)
+	## ORIGIN is combination of protocol, domain, port (http/https; domain name; port # eg. 80, 443, 8080)
+	## for security reasons browsers restrict CO HTTP requests initiated from scripts eg. fetch() follows same-origin policy --> meaning a webapp using those APIs can only request resources from the same origin the app was loaded for UNLESS responses from other origins includes correct CORS headers.
+	## CORS mechanism supports secure CO requests and data transfers between browsers and servers. Browsers use CORS in APIs (eg. fetch()) to mitigate risks of cross-origin HTTP requests.
+#FUNCTIONAL OVERVIEW:
+	## CORS standard works by adding new HTTP headers that let servers describe which origins are permitted to read that info from a web browser
+	## Servers can also inform clients what credentials (eg. cookies, HTTP Auth) need to be sent with request
+# CORS and FastAPI:
+	## Use CORSMiddleware --> configure CORS in FastAPI app--> create list of allowed origins (str) then add as middleware to app. + you can specificy if BE allows Credentials, Specific HTTP methods, Specific HTTP headers [note: '*' == widlcare i.e all-allowed]
+	## default params used by CORSMiddleware implementation are restrictive by default, so you need to explicitly enable particular origins, methods or headers for browsers to be permitted to use them in a Cross-domain context.
+	FOLLOWING ARGS are supported:
+	[allow_origins, allow_origin_regex, allow_methods, allow_headers, allow_credentials, max_age (max seconds for browsers to caches CORS response; default 600s), expose_headers (indicates res headers that should be made accessible to browser; defaults to [])]
+## THE MIDDLEWARE RESPONDS TO TWO PARTICULAR TYPES OF HTTP REQUESTS
+	## CORS preflight request - these are any OPTIONS request with 'Origin' and 'Access-Control-Request-Method' headers (eg. fetch(URL, OPTIONS like method, headers {} body)). In this case the middleware intercepts the request and responds with appropriate CORS headers + either 200/400 response
+	## simple requests - Any request with ORIGIN header; middleware passes request through as normal but will include appropriate CORS headers in response
+# CORS failures result in errors, for security reasons details about the error are not available to JS. The code only knows that an error has occurred. ONLY WAY TO DETERMINE ISSUE IS IN BROWSER CONSOLE
